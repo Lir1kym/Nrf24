@@ -1,0 +1,62 @@
+#include <SPI.h>
+#include "nRF24L01.h"
+#include "RF24.h"
+
+RF24 radio(9, 10);
+byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; 
+int bpin = 2;
+
+void setup() 
+{
+  pinMode (bpin, INPUT);
+  Serial.begin(9600);      
+  radio.begin();            
+  radio.setAutoAck(1);    
+  radio.setRetries(0, 15); 
+  radio.enableAckPayload();
+  radio.setPayloadSize(32); 
+  radio.openWritingPipe(address[0]);   
+  radio.setChannel(0x6b); 
+  radio.setPALevel (RF24_PA_MAX);
+  radio.setDataRate (RF24_1MBPS);
+  radio.powerUp();     
+  radio.stopListening();  
+}
+
+void loop(void) 
+{
+  byte gotByte;
+  bpin = digitalRead (2);
+  Serial.print("Sending... ");
+  Serial.println(bpin);
+  uint32_t last_time = micros();
+
+  if (radio.write(&bpin, 1)) 
+  { 
+    if (!radio.available()) 
+    {      
+      Serial.print("Empty, ");
+      Serial.print(" Time: ");
+      Serial.print(micros() - last_time);
+      Serial.println(" microseconds");
+      Serial.println();
+      delay (1000);
+    } 
+    else 
+    {
+      while (radio.available() ) 
+      {
+        radio.read( &gotByte, 1 );
+        Serial.print("Anser: ");
+        Serial.print(gotByte);
+        Serial.print(" Time: ");
+        Serial.print(micros() - last_time);
+        Serial.println(" microseconds");
+      }
+    }
+  } 
+  else 
+  {
+    Serial.println("Fail");
+  }
+}
